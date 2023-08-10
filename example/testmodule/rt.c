@@ -111,7 +111,7 @@ Color trace(Ray ray, Sphere *spheres, int num_spheres) {
         Vec3 hit_point = {ray.origin.x + ray.direction.x * t, ray.origin.y + ray.direction.y * t, ray.origin.z + ray.direction.z * t};
         Vec3 normal = normalize(subtract(hit_point, sphere.center));
         
-        Vec3 light_direction = {0, 1, 0}; // Example light direction (upwards)
+        Vec3 light_direction = {0, 1, 1};
         double cos_theta = dot(normal, light_direction);
         cos_theta = fmax_impl(cos_theta, 0.0);
         
@@ -123,8 +123,8 @@ Color trace(Ray ray, Sphere *spheres, int num_spheres) {
 }
 
 void main() {
-    int width = 800;
-    int height = 600;
+    int width = 754;
+    int height = 754;
     
     Vec3 camera = {0, 0, 0};
     
@@ -135,28 +135,32 @@ void main() {
     };
     int num_spheres = sizeof(spheres) / sizeof(spheres[0]);
     
-    for (int j = height - 1; j >= 0; j--) {
-        for (int i = 0; i < width; i++) {
-            double u = (double)i / (width - 1);
-            double v = (double)j / (height - 1);
+    int pass = 0;
+    while (pass<=5) {
+        for (int j = height - 1; j >= 0; j--) {
+            for (int i = 0; i < width; i++) {
+                double u = (double)i / (width - 1);
+                double v = (double)j / (height - 1);
             
-            Ray ray = {{camera.x, camera.y, camera.z}, {u - 0.5, v - 0.5, -1}};
+                Ray ray = {{camera.x, camera.y, camera.z}, {u - 0.5, v - 0.5, -1}};
             
-            Color color = trace(ray, spheres, num_spheres);
-            
-            //int ir = (int)(255.99 * color.r);
-            //int ig = (int)(255.99 * color.g);
-            //int ib = (int)(255.99 * color.b);
+                //Color color = trace(ray, spheres, num_spheres);
 
-            uint32_t framebufferColor = color_raw(color);
-            size_t framebufferOffset = (j + 200) * gRowPixels + i; 
-            gFramebuffer[framebufferOffset] = framebufferColor;
+                Color color;
+                color.r = (double)i / width - 1;
+                color.g = (double)j / height - 1;
+                color.b = 0;
+
+                //int ir = (int)(255.99 * color.r);
+                //int ig = (int)(255.99 * color.g);
+                //int ib = (int)(255.99 * color.b);
+
+                uint32_t framebufferColor = color_raw(color);
+                size_t framebufferOffset = (j + 200) * gRowPixels + i; 
+                gFramebuffer[framebufferOffset] = framebufferColor;
+            }
         }
+        pass++;
     }
-    
-    puts("Raytracing complete.");
-    int i = 0;
-    while(i<100000) {
-        i++;
-    }
+    puts("Render complete.");
 }
