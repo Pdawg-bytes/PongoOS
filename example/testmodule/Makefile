@@ -47,13 +47,15 @@ BUILD                   := build
 
 # General options
 EMBEDDED_LD_FLAGS       ?= -nostdlib -static -Wl,-fatal_warnings -Wl,-dead_strip -Wl,-Z $(EMBEDDED_LDFLAGS)
-EMBEDDED_CC_FLAGS       ?= --target=arm64-apple-ios12.0 -Wall -Wunused-label -Werror -O3 -flto -ffreestanding -U__nonnull -nostdlibinc -DTARGET_OS_OSX=0 -DTARGET_OS_MACCATALYST=0 -I$(LIB)/include $(EMBEDDED_LD_FLAGS) $(EMBEDDED_CFLAGS)
+EMBEDDED_CC_FLAGS       ?= --target=arm64-apple-ios12.0 -Wall -Wunused-label -O3 -flto -ffreestanding -U__nonnull -nostdlibinc -DTARGET_OS_OSX=0 -DTARGET_OS_MACCATALYST=0 -I$(LIB)/include $(EMBEDDED_LD_FLAGS) $(EMBEDDED_CFLAGS)
+# Remove -Werror
+
 
 # Module options
 MODULE_LDFLAGS       ?= -Wl,-kext
 MODULE_CC_FLAGS      ?= -I../../apple-include/ -I../include/ $(MODULE_LDFLAGS)
 
-MODULE_C             := main.c
+MODULE_C             := main.c rt.c
 
 .PHONY: all clean
 

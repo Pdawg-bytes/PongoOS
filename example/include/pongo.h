@@ -204,4 +204,8 @@ extern void* ramdisk_buf;
 extern uint32_t ramdisk_size;
 extern uint8_t * loader_xfer_recv_data;
 extern uint32_t loader_xfer_recv_count;
+extern uint32_t* gFramebuffer;
+extern uint32_t gWidth;
+extern uint32_t gHeight;
+extern uint32_t gRowPixels;
 #endif

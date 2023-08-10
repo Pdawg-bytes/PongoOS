@@ -21,6 +21,12 @@
 //  This file is part of pongoOS.
 //
 #include <pongo.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <math.h>
+
+#include "rt.h"
 
 void (*existing_preboot_hook)();
 
@@ -38,10 +44,23 @@ void hello() {
     queue_rx_string("bootx\n"); // Adding boot XNU command to buffer
 }
 
+void fb_test() {
+    memset(gFramebuffer, 5, gHeight * gRowPixels * sizeof(uint32_t));
+    while(1==1) {
+        // Infinite loop.
+    }
+}
+
+void rt_test() {
+    main();
+}
+
 void module_entry() {
     existing_preboot_hook = preboot_hook;
     preboot_hook = m_preboot_hook;
-    command_register("hello", "Hello world!", hello);
+    command_register("test", "A test command to execute test_module.", hello);
+    command_register("fbtest", "A framebuffer test.", fb_test);
+    command_register("rttest", "A test of a basic raytracer.", rt_test);
 }
 
 char* module_name = "test_module";
