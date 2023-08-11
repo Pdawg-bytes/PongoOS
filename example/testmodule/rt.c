@@ -23,26 +23,26 @@ uint32_t color_raw(color color) {
 
 void main() {
     int image_width = 754;
-    int image_height = 424;
+    int image_height = 754;
 
     float focal_length = 1.0;
     float viewport_height = 2.0;
     float viewport_width = 2.0;
 
-    point3 camera_center = make_vec3(0, 0, 0);
+    point3 camera_center = make_vec3(0, 0, -3);
 
     vec3 viewport_u = make_vec3(viewport_width, 0, 0);
     vec3 viewport_v = make_vec3(0, -viewport_height, 0);
 
-    vec3 pixel_delta_u = vec3_scalar_divide(&viewport_u, image_width);
-    vec3 pixel_delta_v = vec3_scalar_divide(&viewport_v, image_height);
+    vec3 horizontal = vec3_scalar_multiply(viewport_width, &viewport_u);
+    vec3 vertical = vec3_scalar_multiply(viewport_height, &viewport_v);
 
-    vec3 viewport_upper_left = vec3_subtraction(&camera_center, &viewport_u);
-    vec3 upper_left_focal = make_vec3(0, 0, focal_length);
-    viewport_upper_left = vec3_subtraction(&viewport_upper_left, get_vec3_ptr(upper_left_focal));
-    vec3 pixel00_loc_temp = vec3_addition(&pixel_delta_u, &pixel_delta_v);
-    vec3 pixel00_loc_temp2 = vec3_scalar_multiply(0.5, &pixel00_loc_temp);
-    vec3 pixel00_loc = vec3_subtraction(&viewport_upper_left, &pixel00_loc_temp2);
+    vec3 lower_left_corner = vec3_subtraction(&camera_center, &horizontal);
+    lower_left_corner = vec3_subtraction(&lower_left_corner, &vertical);
+    lower_left_corner = vec3_scalar_multiply(0.5, &lower_left_corner);
+
+    vec3 pixel_delta_u = vec3_scalar_divide(&horizontal, image_width);
+    vec3 pixel_delta_v = vec3_scalar_divide(&vertical, image_height);
 
     int pass = 0;
     while (pass <= 5) {
@@ -51,8 +51,8 @@ void main() {
                 vec3 pixel_center_temp1 = vec3_scalar_multiply(i, &pixel_delta_u);
                 vec3 pixel_center_temp2 = vec3_scalar_multiply(j, &pixel_delta_v);
                 vec3 pixel_center_temp3 = vec3_addition(&pixel_center_temp1, &pixel_center_temp2);
-                vec3 pixel_center = vec3_addition(&pixel00_loc, &pixel_center_temp3);
-            
+                vec3 pixel_center = vec3_addition(&lower_left_corner, &pixel_center_temp3);
+
                 vec3 ray_direction = vec3_subtraction(&pixel_center, &camera_center);
                 ray r = make_ray(&camera_center, &ray_direction);
                 color pixel_color = ray_color(&r);
