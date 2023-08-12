@@ -17,7 +17,6 @@ double hit_sphere(const point3 *center, double radius, const ray *r) {
     double discriminant = b * b - 4 * a * c;
 
     if (discriminant < 0) {
-        printf("Did we make it here?");
         return -1.0;
     }
     else {
@@ -26,10 +25,13 @@ double hit_sphere(const point3 *center, double radius, const ray *r) {
 }
 
 color ray_color(const ray *r) {
-    double t = hit_sphere(get_vec3_ptr(make_vec3(0, 0, -1)), 0.9, r);
+    vec3 center = make_vec3(0,0,-1);
+    double t = hit_sphere(&center, 0.9, r);
     if (t > 0.0) {
-        vec3 N = vec3_unit_vector(vec3_subtraction(get_vec3_ptr(make_vec3(0,0,-1)), get_vec3_ptr(ray_at(r, t))));
-        color pixel_color = vec3_scalar_multiply(0.5, get_vec3_ptr(make_vec3(N.e[0] + 1, N.e[1] + 1, N.e[2] + 1)));
+        vec3 ray_point = ray_at(r, t);
+        vec3 N = vec3_unit_vector(vec3_subtraction(&center, &ray_point));
+        vec3 normalized_color = make_vec3(N.e[0] + 1, N.e[1] + 1, N.e[2] + 1);
+        color pixel_color = vec3_scalar_multiply(0.5, &normalized_color);
         return pixel_color;
     }
 

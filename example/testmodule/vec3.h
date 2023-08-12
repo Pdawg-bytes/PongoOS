@@ -41,11 +41,6 @@ vec3 make_vec3(double e0, double e1, double e2) {
     return v;
 }
 
-vec3* get_vec3_ptr(vec3 v) {
-    vec3* ptr = &v;
-    return ptr;
-}
-
 double vec3_x(const vec3 *v) { return v->e[0]; }
 double vec3_y(const vec3 *v) { return v->e[1]; }
 double vec3_z(const vec3 *v) { return v->e[2]; }
