@@ -1,7 +1,7 @@
 #ifndef RAY_H
 #define RAY_H
 
-#include "vec3.h"
+#include "common.h"
 
 typedef struct {
     point3 orig;
