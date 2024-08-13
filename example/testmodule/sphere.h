@@ -1,93 +1,47 @@
-#pragma once
+#ifndef SPHERE_H
+#define SPHERE_H
 
-//-----------------------------------------------------------------------------
-// Includes
-//-----------------------------------------------------------------------------
-#pragma region
+#include "common.h"
 
-#include "geometry.h"
-#include "math_tools.h"
+typedef struct {
+    point3 center;
+    double radius;
+} sphere;
 
-#pragma endregion
-
-//-----------------------------------------------------------------------------
-// Declarations and Definitions: Defines
-//-----------------------------------------------------------------------------
-#pragma region
-
-#define EPSILON_SPHERE 1e-4
-
-#pragma endregion
-
-//-----------------------------------------------------------------------------
-// Declarations and Definitions: Reflection_t
-//-----------------------------------------------------------------------------
-#pragma region
-
-typedef enum Reflection_t { 
-	DIFFUSE, 
-	SPECULAR, 
-	REFRACTIVE 
-} Reflection_t;
-
-#pragma endregion
-
-//-----------------------------------------------------------------------------
-// Declarations and Definitions: Sphere
-//-----------------------------------------------------------------------------
-#pragma region
-
-typedef struct Sphere {
-	double r;
-	Vector3 p, e, f; // position, emission, reflection
-	Reflection_t reflection_t;
-} Sphere;
-
-#pragma endregion
-
-//-----------------------------------------------------------------------------
-// Declarations and Definitions: Sphere Utilities
-//-----------------------------------------------------------------------------
-#pragma region
-
-bool intersect_sphere(const Sphere* sphere, Ray* ray) {
-	// (o + t*d - p) . (o + t*d - p) - r*r = 0
-	// <=> (d . d) * t^2 + 2 * d . (o - p) * t + (o - p) . (o - p) - r*r = 0
-	// 
-	// Discriminant check
-	// (2 * d . (o - p))^2 - 4 * (d . d) * ((o - p) . (o - p) - r*r) <? 0
-	// <=> (d . (o - p))^2 - (d . d) * ((o - p) . (o - p) - r*r) <? 0
-	// <=> (d . op)^2 - 1 * (op . op - r*r) <? 0
-	// <=> b^2 - (op . op) + r*r <? 0
-	// <=> D <? 0
-	//
-	// Solutions
-	// t = (- 2 * d . (o - p) +- 2 * square_root(D)) / (2 * (d . d))
-	// <=> t = dop +- square_root(D)
-
-	const Vector3 op = sub_v3v3(&sphere->p, &ray->o);
-	const double dop = dot_v3v3(&ray->d, &op);
-	const double D = dop * dop - dot_v3v3(&op, &op) + sphere->r * sphere->r;
-
-	if (0 > D) {
-		return false;
-	}
-
-	const double sqrtD = square_root(D);
-
-	const double tmin = dop - sqrtD;
-	if (ray->tmin < tmin && tmin < ray->tmax) {
-		ray->tmax = tmin;
-		return true;
-	}
-
-	const double tmax = dop + sqrtD;
-	if (ray->tmin < tmax && tmax < ray->tmax) {
-		ray->tmax = tmax;
-		return true;
-	}
-
-	return false;
+sphere sphere_create(point3 _center, double _radius) {
+    sphere s;
+    s.center = _center;
+    s.radius = _radius;
+    return s;
 }
 
-#pragma endregion
+bool sphere_hit(const sphere* s, const ray* r, double ray_tmin, double ray_tmax, hit_record* rec) {
+    vec3 sphere_center = s->center;
+    vec3 oc = vec3_subtraction(&r->orig, &sphere_center);
+    double a = vec3_length_squared(&r->dir);
+    double half_b = vec3_dot(&oc, &r->dir);
+    double sphere_radius = s->radius;
+    double c = vec3_length_squared(&oc) - sphere_radius * sphere_radius;
+
+    double discriminant = half_b * half_b - a * c;
+    if (discriminant < 0) return false;
+    double sqrtd = sqrt(discriminant);
+
+    double root = (-half_b - sqrtd) / a;
+    if (root <= ray_tmin || ray_tmax <= root) {
+        root = (-half_b + sqrtd) / a;
+        if (root <= ray_tmin || ray_tmax <= root)
+            return false;
+    }
+
+    rec->t = root;
+    rec->p = ray_at(r, rec->t);
+    vec3 hit_point = rec->p;
+    vec3 subtracted_outward = vec3_subtraction(&hit_point, &sphere_center);
+    vec3 outward_normal = vec3_divide(&subtracted_outward, &sphere_center);
+    set_face_normal(rec, r, &outward_normal);
+
+    return true;
+}
+
+#endif

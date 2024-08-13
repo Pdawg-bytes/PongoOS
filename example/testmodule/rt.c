@@ -1,203 +1,77 @@
-//-----------------------------------------------------------------------------
-// Includes
-//-----------------------------------------------------------------------------
-#pragma region
-
-#include "imageio.h"
-#include "sampling.h"
-#include "specular.h"
-#include "sphere.h"
-#include "rt.h"
-#include "math_tools.h"
-
 #include <pongo.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <stdint.h>
 
-#pragma endregion
+#include "vec3.h"
+#include "color.h"
+#include "ray.h"
+#include "rt.h"
 
-//-----------------------------------------------------------------------------
-// Defines
-//-----------------------------------------------------------------------------
-#pragma region
-
-#define REFRACTIVE_INDEX_OUT 1.0
-#define REFRACTIVE_INDEX_IN  1.5
-
-#pragma endregion
-
-//-----------------------------------------------------------------------------
-// Declarations and Definitions
-//-----------------------------------------------------------------------------
-#pragma region
-
-const Sphere spheres[] = {//Scene: radius, position, emission, color, material
-	{ 1e5,   { 1e5 + 1.0, 40.8, 81.6 },    { 0.0, 0.0, 0.0 },    { 0.75,0.25,0.25 },      DIFFUSE},	   //Left
-	{ 1e5,   { -1e5 + 99.0, 40.8, 81.6 },  { 0.0, 0.0, 0.0 },    { 0.25,0.25,0.75 },      DIFFUSE},	   //Right
-	{ 1e5,   { 50.0, 40.8, 1e5 },		   { 0.0, 0.0, 0.0 },    { 0.75, 0.75, 0.75 },    DIFFUSE},	   //Back
-	{ 1e5,   { 50.0, 40.8, -1e5 + 170.0 }, { 0.0, 0.0, 0.0 },    { 0.0, 0.0, 0.0 },       DIFFUSE},	   //Front
-	{ 1e5,   { 50.0, 1e5, 81.6 },          { 0.0, 0.0, 0.0 },    { 0.75, 0.75, 0.75 },    DIFFUSE},	   //Bottom
-	{ 1e5,   { 50.0, -1e5 + 81.6, 81.6 },  { 0.0, 0.0, 0.0 },    { 0.75, 0.75, 0.75 },    DIFFUSE},	   //Top
-	{ 16.5,  { 27.0, 16.5, 47.0 },         { 0.0, 0.0, 0.0 },    { 0.999, 0.999, 0.999 }, SPECULAR},   //Mirror
-	{ 16.5,  { 73.0, 16.5, 78.0 },         { 0.0, 0.0, 0.0 },    { 0.999, 0.999, 0.999 }, REFRACTIVE}, //Glass
-	{ 600.0, { 50.0, 681.6 - .27, 81.6 },  { 12.0, 12.0, 12.0 }, { 0.0, 0.0, 0.0 },       DIFFUSE}	   //Light
-};
-
-bool intersect(Ray* ray, size_t* id) {
-	bool hit = false;
-	const size_t n = sizeof(spheres) / sizeof(Sphere);
-	for (size_t i = 0u; i < n; ++i) {
-		if (intersect_sphere(&spheres[i], ray)) {
-			hit = true;
-			*id = i;
-		}
-	}
-
-	return hit;
+double fmax_impl(double a, double b) {
+    return (a > b) ? a : b;
 }
 
-static Vector3 radiance(Ray* ray, unsigned short xseed[3]) {
-	Ray* r = ray;
-	Vector3 L = { 0.0, 0.0, 0.0 };
-	Vector3 F = { 1.0, 1.0, 1.0 };
+uint32_t color_raw(color color) {
+    uint8_t red = (uint8_t)(255.99 * color.e[0]);
+    uint8_t green = (uint8_t)(255.99 * color.e[1]);
+    uint8_t blue = (uint8_t)(255.99 * color.e[2]);
 
-	while (true) {
-		size_t id;
-		if (!intersect(r, &id)) {
-			return L;
-		}
-
-		const Sphere* shape = &spheres[id];
-		const Vector3 p = eval_r(r, r->tmax);
-		Vector3 n = sub_v3v3(&p, &shape->p);
-		normalize_v3(&n);
-		printf("L71\n");
-
-		const Vector3 l = mul_v3v3(&F, &shape->e);
-		L = add_v3v3(&L, &l);
-		F = mul_v3v3(&F, &shape->f);
-
-		// Russian roulette
-		if (4u < r->depth) {
-			const double continue_probability = max_v3(&shape->f);
-			if (erand48(xseed) >= continue_probability) {
-				return L;
-			}
-			F = div_v3d(&F, continue_probability);
-		}
-
-		// Next path segment
-		switch (shape->reflection_t) {
-		
-		case SPECULAR: {
-			r->o = p;
-			r->d = ideal_specular_reflect(&r->d, &n);
-			r->tmin = EPSILON_SPHERE;
-			r->tmax = INFINITY;
-			r->depth++;
-			break;
-		}
-		
-		case REFRACTIVE: {
-			r->o = p;
-			double pr;
-			r->d = ideal_specular_transmit(&r->d, &n, REFRACTIVE_INDEX_OUT, REFRACTIVE_INDEX_IN, &pr, xseed);
-			F = mul_v3d(&F, pr);
-			r->tmin = EPSILON_SPHERE;
-			r->tmax = INFINITY;
-			r->depth++;
-			break;
-		}
-		
-		default: {
-			const Vector3 w = (0.0 > dot_v3v3(&n, &r->d)) ? n : minus_v3(&n);
-			Vector3 _u = { 0.0, 0.0, 0.0 };
-			if (fabsolute(w.x) > 0.1) {
-				_u.y = 1.0;
-			}
-			else {
-				_u.x = 1.0;
-			}
-			Vector3 u = cross_v3v3(&_u, &w);
-			normalize_v3(&u);
-			const Vector3 v = cross_v3v3(&w, &u);
-
-			const Vector3 sample_d = cosine_weighted_sample_on_hemisphere(erand48(xseed), erand48(xseed));
-			const Vector3 _x = mul_dv3(sample_d.x, &u);
-			const Vector3 _y = mul_dv3(sample_d.y, &v);
-			const Vector3 _z = mul_dv3(sample_d.z, &w);
-			const Vector3 _xy = add_v3v3(&_x, &_y);
-			Vector3 d = add_v3v3(&_xy, &_z);
-			r->o = p;
-			r->d = *normalize_v3(&d);;
-			r->tmin = EPSILON_SPHERE;
-			r->tmax = INFINITY;
-			r->depth++;
-		}
-		}
-	}
+    return (0xFFU << 24) | ((uint32_t)red << 16) | ((uint32_t)green << 8) | (uint32_t)blue;
 }
 
 void main() {
-	const unsigned int nb_samples = 16;
+    int image_width = 754;
+    int image_height = 754;
 
-	const unsigned int w = 100u;
-	const unsigned int h = 100u;
+    hittable_list* world = hittable_list_create();
 
-	const Vector3 eye = { 50, 52, 295.6 };
-	Vector3 gaze = { 0, -0.042612, -1 };
-	normalize_v3(&gaze);
-	const double fov = 0.5135;
-	const Vector3 cx = { w * fov / h, 0.0, 0.0 };
-	Vector3 _cy = cross_v3v3(&cx, &gaze);
-	normalize_v3(&_cy);
-	const Vector3 cy = mul_v3d(&_cy, fov);
+    // fix this tomorrow its 2 in the morning
+    hittable* sphere1 = sphere_create(make_vec3(0, 0, -1), 0.5);
+    hittable* sphere2 = sphere_create(make_vec3(0, -100.5, -1), 100);
 
-	Vector3* Ls = malloc(w * h * sizeof(Vector3));
-	printf("did we make it here?\n");
-	for (unsigned int y = 0u; y < h; ++y) { // pixel row
-		unsigned short xseed[3] = { 0, 0, (unsigned short)(y * y * y) };
-		for (unsigned int x = 0u; x < w; ++x) { // pixel column
-			
-			for (unsigned int sy = 0u, i = (h - 1u - y) * w + x; sy < 2u; ++sy) { // 2 subpixel row
-				
-				for (unsigned int sx = 0u; sx < 2u; ++sx) { // 2 subpixel column
-					
-					Vector3 L = { 0.0, 0.0, 0.0 };
-					
-					for (unsigned int s = 0u; s < nb_samples; ++s) { // samples per subpixel
-						const double u1 = 2.0 * erand48(xseed);
-						const double u2 = 2.0 * erand48(xseed);
-						printf("what about here? erand subpixel begin\n");
-						const double dx = (u1 < 1.0f) ? square_root(u1) - 1.0 : 1.0 - square_root(2.0 - u1);
-						const double dy = (u2 < 1.0f) ? square_root(u2) - 1.0 : 1.0 - square_root(2.0 - u2);
+    hittable_list_add(world, sphere1);
+    hittable_list_add(world, sphere2);
 
-						const Vector3 _a = mul_v3d(&cx, (((sx + 0.5 + dx) / 2.0 + x) / w - 0.5));
-						const Vector3 _b = mul_v3d(&cy, (((sy + 0.5 + dy) / 2.0 + y) / h - 0.5));
-						const Vector3 _ab = add_v3v3(&_a, &_b);
-						Vector3 d = add_v3v3(&_ab, &gaze);
-						const Vector3 d130 = mul_v3d(&d, 130.0);
-						Ray ray = { add_v3v3(&eye, &d130), *normalize_v3(&d), EPSILON_SPHERE, INFINITY, 0 };
+    float focal_length = 1.0;
+    float viewport_height = 2.0;
+    float viewport_width = 2.0;
 
-						printf("it has to be right here!\n");
-						const Vector3 _l = radiance(&ray, xseed);
-						printf("nevermind i suck at guessing.\n");
-						const Vector3 l = div_v3d(&_l, (double)nb_samples);
-						printf("RIGHT HERE! THIS IS THE ONE!\n");
-						L = add_v3v3(&L, &l);
-						printf("test: %lf\n", L.x);
-					}
-					
-					const Vector3 _l = clamp_v3(&L, 0.0, 1.0);
-					const Vector3 l = mul_dv3(0.25, &_l);
-					const Vector3 pixel_color = add_v3v3(&Ls[i], &l);
+    point3 camera_center = make_vec3(0, 0, -3);
 
-					uint32_t framebufferColor = color_raw(pixel_color);
-					printf("framebuffer color: %d\n", framebufferColor);
-                	size_t framebufferOffset = (h + 200) * gRowPixels + w; 
-                	gFramebuffer[framebufferOffset] = framebufferColor;
-				}
-			}
-		}
-	}
+    vec3 viewport_u = make_vec3(viewport_width, 0, 0);
+    vec3 viewport_v = make_vec3(0, -viewport_height, 0);
+
+    vec3 horizontal = vec3_scalar_multiply(viewport_width, &viewport_u);
+    vec3 vertical = vec3_scalar_multiply(viewport_height, &viewport_v);
+
+    vec3 lower_left_corner = vec3_subtraction(&camera_center, &horizontal);
+    lower_left_corner = vec3_subtraction(&lower_left_corner, &vertical);
+    lower_left_corner = vec3_scalar_multiply(0.5, &lower_left_corner);
+
+    vec3 pixel_delta_u = vec3_scalar_divide(&horizontal, image_width);
+    vec3 pixel_delta_v = vec3_scalar_divide(&vertical, image_height);
+
+    int pass = 0;
+    while (pass <= 5) {
+        for (int j = image_height - 1; j >= 0; j--) {
+            for (int i = 0; i < image_width; i++) {
+                vec3 pixel_center_temp1 = vec3_scalar_multiply(i, &pixel_delta_u);
+                vec3 pixel_center_temp2 = vec3_scalar_multiply(j, &pixel_delta_v);
+                vec3 pixel_center_temp3 = vec3_addition(&pixel_center_temp1, &pixel_center_temp2);
+                vec3 pixel_center = vec3_addition(&lower_left_corner, &pixel_center_temp3);
+
+                vec3 ray_direction = vec3_subtraction(&pixel_center, &camera_center);
+                ray r = make_ray(&camera_center, &ray_direction);
+                color pixel_color = ray_color(&r, world);
+
+                uint32_t framebufferColor = color_raw(pixel_color);
+                size_t framebufferOffset = (j + 200) * gRowPixels + i; 
+                gFramebuffer[framebufferOffset] = framebufferColor;
+            }
+        }
+        pass++;
+    }
+    puts("Render complete.");
 }
-
-#pragma endregion
