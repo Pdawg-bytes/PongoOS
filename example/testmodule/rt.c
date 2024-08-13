@@ -25,15 +25,6 @@ void main() {
     int image_width = 754;
     int image_height = 754;
 
-    hittable_list* world = hittable_list_create();
-
-    // fix this tomorrow its 2 in the morning
-    hittable* sphere1 = sphere_create(make_vec3(0, 0, -1), 0.5);
-    hittable* sphere2 = sphere_create(make_vec3(0, -100.5, -1), 100);
-
-    hittable_list_add(world, sphere1);
-    hittable_list_add(world, sphere2);
-
     float focal_length = 1.0;
     float viewport_height = 2.0;
     float viewport_width = 2.0;
@@ -64,7 +55,7 @@ void main() {
 
                 vec3 ray_direction = vec3_subtraction(&pixel_center, &camera_center);
                 ray r = make_ray(&camera_center, &ray_direction);
-                color pixel_color = ray_color(&r, world);
+                color pixel_color = ray_color(&r);
 
                 uint32_t framebufferColor = color_raw(pixel_color);
                 size_t framebufferOffset = (j + 200) * gRowPixels + i; 

@@ -4,26 +4,27 @@
 #include <stdbool.h>
 #include <pongo.h>
 
-#include "common.h"
+#include "vec3.h"
+#include "ray.h"
 
 typedef vec3 color;
 
 double hit_sphere(const point3 *center, double radius, const ray *r) {
     vec3 oc = vec3_subtraction(&r->orig, center);
-    double a = vec3_length_squared(&r->dir);
-    double half_b = vec3_dot(&oc, &r->dir);
-    double c = vec3_length_squared(&oc) - radius * radius;
-    double discriminant = half_b*half_b - a*c;
+    double a = vec3_dot(&r->dir, &r->dir);
+    double b = 2.0 * vec3_dot(&oc, &r->dir);
+    double c = vec3_dot(&oc, &oc) - radius * radius;
+    double discriminant = b * b - 4 * a * c;
 
     if (discriminant < 0) {
         return -1.0;
     }
     else {
-        return (-half_b - square_root(discriminant) ) / a;
+        return (-b - square_root(discriminant)) / (2.0 * a);
     }
 }
 
-color ray_color(const ray *r, const hittable* world) {
+color ray_color(const ray *r) {
     vec3 center = make_vec3(0,0,-1);
     double t = hit_sphere(&center, 0.9, r);
     if (t > 0.0) {
