@@ -1,0 +1,6 @@
+# must be in build directory of module
+cd ..; cd build/; sudo python3 /home/razzledev/src-repos/git/PongoOS/scripts/upload_data.py testmodule
+sudo ../../../scripts/pongoterm
+
+# load pongo:
+sudo checkra1n-1337 -k Pongo.bin -p
