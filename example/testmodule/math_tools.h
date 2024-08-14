@@ -17,6 +17,8 @@
 #pragma region
 
 #define PI 3.14159265358979323846
+#define infinity_val INFINITY
+#define RAND_MAX 0x7fff
 
 #pragma endregion
 
@@ -59,6 +61,14 @@ float fabsolute(float x) {
     return x;
 }
 
+int minimum(int x, int y) {
+    return (x < y) ? x : y;
+}
+
+int maximum(int x, int y) {
+    return (x > y) ? x : y;
+}
+
 double fmaximum(double x, double y) {
     return (x > y) ? x : y;
 }
@@ -97,28 +107,23 @@ float cosine(float x) {
     return x > PI/2 ? sine(PI/2 - x) : sine(PI/2 + x);
 }
 
-double square_root(double x) {
-    double y;
-    int p,square,c;
+float tangent(float x) {
+    return sine(x)/cosine(x);
+}
 
-    p = 0;
-    do
-    {
-        p++;
-        square = (p+1) * (p+1);
-    }
-    while( x > square );
+double square_root(double n){
+  double lo = minimum(1, n), hi = maximum(1, n), mid;
 
-    y = (double)p;
-    c = 0;
-    while(c<10)
-    {
-        y = (x/y + y)/2;
-        if( y*y == x)
-            return(y);
-        c++;
-    }
-    return(y);
+  while(100 * lo * lo < n) lo *= 10;
+  while(0.01 * hi * hi > n) hi *= 0.1;
+
+  for(int i = 0 ; i < 100 ; i++){
+      mid = (lo+hi)/2;
+      if(mid*mid == n) return mid;
+      if(mid*mid > n) hi = mid;
+      else lo = mid;
+  }
+  return mid;
 }
 
 double ceiling(double x) {
@@ -159,6 +164,12 @@ double round_impl(double x) {
     } else {
         return ceiling(x - 0.5);
     }
+}
+
+static unsigned long next = 1;
+int rand_impl(void) {
+    next = next * 214013L + 2531011L;
+    return (int)((next >> 16) & 0x7FFF);
 }
 
 #pragma endregion

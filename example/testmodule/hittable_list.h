@@ -1,71 +1,99 @@
 #ifndef HITTABLE_LIST_H
-#define HITTABLE_LIST_H
+# define HITTABLE_LIST_H
 
-#include "hittable.h"
+# include "hittable.h"
+# include "sphere.h"
+# include "moving_sphere.h"
 
-#include <stddef.h>
-#include <stdlib.h>
+typedef struct	list
+{
+	hittable object;
+	struct list* next;
+}				list;
 
-typedef struct {
-    hittable base;
-    hittable** objects;
-    size_t size;
-} hittable_list;
+list* list_(hittable object)
+{
+	list* new;
 
-hittable_list* hittable_list_create() {
-    hittable_list* list = (hittable_list*)malloc(sizeof(hittable_list));
-    if (list == NULL) {
-        return NULL;
-    }
-
-    list->base.hit = NULL;
-    list->objects = NULL;
-    list->size = 0;
-
-    return list;
+	new = malloc(sizeof(list));
+	if (new)
+	{
+		new->object = object;
+		new->next = NULL;
+	}
+	return (new);
 }
 
-void hittable_list_clear(hittable_list* list) {
-    if (list->objects != NULL) {
-        for (size_t i = 0; i < list->size; i++) {
-            free(list->objects[i]);
-        }
-        free(list->objects);
-        list->objects = NULL;
-        list->size = 0;
-    }
+void	push(list** lst, list* new)
+{
+	list* temp;
+
+	temp = *lst;
+	*lst = new;
+	(*lst)->next = temp;
 }
 
-void hittable_list_add(hittable_list* list, hittable* object) {
-    hittable** new_objects = (hittable**)realloc(list->objects, (list->size + 1) * sizeof(hittable*));
-    if (new_objects == NULL) {
-        return;
-    }
-
-    list->objects = new_objects;
-    list->objects[list->size] = object;
-    list->size++;
+void	drop(list* lst)
+{
+	if (lst)
+	{
+		free(lst->object.pointer);
+		free(lst);
+	}
 }
 
-int hittable_list_hit(const hittable_list* list, const ray* r, double ray_tmin, double ray_tmax, hit_record* rec) {
-    hit_record temp_rec;
-    int hit_anything = 0;
-    double closest_so_far = ray_tmax;
+void	clear(list** lst)
+{
+	list* temp;
 
-    for (size_t i = 0; i < list->size; i++) {
-        if (list->objects[i]->hit(list->objects[i], r, ray_tmin, closest_so_far, &temp_rec)) {
-            hit_anything = 1;
-            closest_so_far = temp_rec.t;
-            *rec = temp_rec;
-        }
-    }
-
-    return hit_anything;
+	if (lst)
+	{
+		while (*lst)
+		{
+			temp = (*lst)->next;
+			drop(*lst);
+			(*lst) = temp;
+		}
+		lst = NULL;
+	}
 }
 
-void hittable_list_destroy(hittable_list* list) {
-    hittable_list_clear(list);
-    free(list);
+static int hit_(hittable* object, ray* r, double t_min, double t_max, hit_record* rec)
+{
+	int is_hit;
+
+	switch (object->geometry)
+	{
+	case _sphere:
+		is_hit = hit_sphere(object->pointer, r, t_min, t_max, rec);
+		break;
+	case _moving_sphere:
+		is_hit = hit_moving_sphere(object->pointer, r, t_min, t_max, rec);
+		break;
+	}
+	if (is_hit)
+		rec->material = object->material;
+	return (is_hit);
+}
+
+int hit(list* current, ray* r, double t_min, double t_max, hit_record* rec)
+{
+	hit_record temp_rec;
+	double closest_so_far = t_max;
+	int hit_anything = FALSE;
+
+	while (current)
+	{
+		if (hit_(&current->object, r, t_min, t_max, &temp_rec))
+			if (temp_rec.t < closest_so_far)
+			{
+				hit_anything = TRUE;
+				closest_so_far = temp_rec.t;
+				*rec = temp_rec;
+			}
+		current = current->next;
+	}
+	return (hit_anything);
 }
 
 #endif

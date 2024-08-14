@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "rtweekend.h": "c",
+        "stdlib.h": "c"
+    }
+}

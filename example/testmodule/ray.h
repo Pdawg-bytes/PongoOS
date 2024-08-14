@@ -1,31 +1,28 @@
 #ifndef RAY_H
-#define RAY_H
+# define RAY_H
 
-#include "vec3.h"
+# include "vec3.h"
 
-typedef struct {
-    point3 orig;
-    vec3 dir;
-} ray;
+typedef struct	ray
+{
+	point3 origin;
+	vec3 direction;
+	double time;
+}				ray;
 
-ray make_ray(const point3 *origin, const vec3 *direction) {
-    ray r;
-    r.orig = *origin;
-    r.dir = *direction;
-    return r;
+ray ray_(point3 origin, vec3 direction, double time)
+{
+	ray r;
+
+	r.origin = origin;
+	r.direction = direction;
+	r.time = time;
+	return (r);
 }
 
-point3 ray_origin(const ray *r) {
-    return r->orig;
-}
-
-vec3 ray_direction(const ray *r) {
-    return r->dir;
-}
-
-point3 ray_at(const ray *r, double t) {
-    vec3 scaled_dir = vec3_scalar_multiply(t, &r->dir);
-    return vec3_addition(&r->orig, &scaled_dir);
+point3 at(ray* r, double t)
+{
+	return (add(r->origin, multiply(r->direction, t)));
 }
 
 #endif
