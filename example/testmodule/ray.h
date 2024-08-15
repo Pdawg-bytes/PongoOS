@@ -1,16 +1,16 @@
 #ifndef RAY_H
-# define RAY_H
+#define RAY_H
 
-# include "vec3.h"
+#include "vec3.h"
 
-typedef struct	ray
+typedef struct ray
 {
 	point3 origin;
 	vec3 direction;
 	double time;
-}				ray;
+} ray;
 
-ray ray_(point3 origin, vec3 direction, double time)
+ray ray_create(point3 origin, vec3 direction, double time)
 {
 	ray r;
 
@@ -20,9 +20,9 @@ ray ray_(point3 origin, vec3 direction, double time)
 	return (r);
 }
 
-point3 at(ray* r, double t)
+point3 ray_at(ray* r, double t)
 {
-	return (add(r->origin, multiply(r->direction, t)));
+	return (vec3_add(r->origin, vec3_multiply_scalar(r->direction, t)));
 }
 
 #endif

@@ -27,8 +27,9 @@
 //-----------------------------------------------------------------------------
 #pragma region
 
-double clamp(double x, double low, double high) {
-	return (x < high) ? ((x > low) ? x : low) : high;
+double clamp(double x, double min, double max) {
+	const double t = x < min ? min : x;
+    return t > max ? max : t;
 }
 
 double power(double base, int exponent) {
@@ -112,7 +113,7 @@ float tangent(float x) {
 }
 
 double square_root(double n){
-  double lo = minimum(1, n), hi = maximum(1, n), mid;
+  /*double lo = minimum(1, n), hi = maximum(1, n), mid;
 
   while(100 * lo * lo < n) lo *= 10;
   while(0.01 * hi * hi > n) hi *= 0.1;
@@ -123,7 +124,12 @@ double square_root(double n){
       if(mid*mid > n) hi = mid;
       else lo = mid;
   }
-  return mid;
+  return mid;*/
+
+  // this is so cursed but it's what newlib does for arm64
+  double result;
+  asm("fsqrt\t%d0, %d1" : "=w" (result) : "w" (n));
+  return result;
 }
 
 double ceiling(double x) {
@@ -170,6 +176,21 @@ static unsigned long next = 1;
 int rand_impl(void) {
     next = next * 214013L + 2531011L;
     return (int)((next >> 16) & 0x7FFF);
+}
+
+double degrees_to_radians(double degrees)
+{
+    return (degrees * PI / 180.0);
+}
+
+double random_double()
+{
+    return (rand_impl() / (RAND_MAX + 1.0));
+}
+
+double random_double_minmax(double min, double max)
+{
+    return (min + (max - min) * random_double());
 }
 
 #pragma endregion

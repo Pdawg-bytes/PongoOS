@@ -1,21 +1,21 @@
 #ifndef HITTABLE_LIST_H
-# define HITTABLE_LIST_H
+#define HITTABLE_LIST_H
 
-# include "hittable.h"
-# include "sphere.h"
-# include "moving_sphere.h"
+#include "hittable.h"
+#include "sphere.h"
+#include "moving_sphere.h"
 
-typedef struct	list
+typedef struct hittable_list
 {
-	hittable object;
-	struct list* next;
-}				list;
+	hittable_object object;
+	struct hittable_list* next;
+} hittable_list;
 
-list* list_(hittable object)
+hittable_list* hittable_list_create(hittable_object object)
 {
-	list* new;
+	hittable_list* new;
 
-	new = malloc(sizeof(list));
+	new = malloc(sizeof(hittable_list));
 	if (new)
 	{
 		new->object = object;
@@ -24,16 +24,16 @@ list* list_(hittable object)
 	return (new);
 }
 
-void	push(list** lst, list* new)
+void hittable_list_push(hittable_list** lst, hittable_list* new)
 {
-	list* temp;
+	hittable_list* temp;
 
 	temp = *lst;
 	*lst = new;
 	(*lst)->next = temp;
 }
 
-void	drop(list* lst)
+void hittable_list_drop(hittable_list* lst)
 {
 	if (lst)
 	{
@@ -42,33 +42,33 @@ void	drop(list* lst)
 	}
 }
 
-void	clear(list** lst)
+void hittable_list_clear(hittable_list** lst)
 {
-	list* temp;
+	hittable_list* temp;
 
 	if (lst)
 	{
 		while (*lst)
 		{
 			temp = (*lst)->next;
-			drop(*lst);
+			hittable_list_drop(*lst);
 			(*lst) = temp;
 		}
 		lst = NULL;
 	}
 }
 
-static int hit_(hittable* object, ray* r, double t_min, double t_max, hit_record* rec)
+static int hittable_object_hit(hittable_object* object, ray* r, double t_min, double t_max, hit_record* rec)
 {
 	int is_hit;
 
 	switch (object->geometry)
 	{
-	case _sphere:
-		is_hit = hit_sphere(object->pointer, r, t_min, t_max, rec);
+	case sphere_geometry:
+		is_hit = sphere_hit(object->pointer, r, t_min, t_max, rec);
 		break;
-	case _moving_sphere:
-		is_hit = hit_moving_sphere(object->pointer, r, t_min, t_max, rec);
+	case moving_sphere_geometry:
+		is_hit = moving_sphere_hit(object->pointer, r, t_min, t_max, rec);
 		break;
 	}
 	if (is_hit)
@@ -76,7 +76,7 @@ static int hit_(hittable* object, ray* r, double t_min, double t_max, hit_record
 	return (is_hit);
 }
 
-int hit(list* current, ray* r, double t_min, double t_max, hit_record* rec)
+int hittable_list_hit(hittable_list* current, ray* r, double t_min, double t_max, hit_record* rec)
 {
 	hit_record temp_rec;
 	double closest_so_far = t_max;
@@ -84,7 +84,7 @@ int hit(list* current, ray* r, double t_min, double t_max, hit_record* rec)
 
 	while (current)
 	{
-		if (hit_(&current->object, r, t_min, t_max, &temp_rec))
+		if (hittable_object_hit(&current->object, r, t_min, t_max, &temp_rec))
 			if (temp_rec.t < closest_so_far)
 			{
 				hit_anything = TRUE;

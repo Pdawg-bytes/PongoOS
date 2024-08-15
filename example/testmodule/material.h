@@ -1,38 +1,38 @@
 #ifndef MATERIAL_H
-# define MATERIAL_H
+#define MATERIAL_H
 
-# include "rtweekend.h"
+#include "common.h"
 
-typedef enum	surface
+typedef enum surface_type
 {
 	metal,
 	lambertian,
 	dielectric
-}				surface;
+} surface_type;
 
-typedef struct	material
+typedef struct material
 {
 	color albedo;
-	surface surface;
-	double fuzz;
+	surface_type surface;
+	double fuzziness;
 	double ir;
-}				material;
+} material;
 
-typedef struct	hit_record
+typedef struct hit_record
 {
 	point3 p;
-	vec3 normal;
+	vec3 hit_normal;
 	material material;
 	double t;
 	int	front_face;
-}				hit_record;
+} hit_record;
 
-material material_(surface s, color c, double f, double ir)
+material material_create(surface_type s, color c, double f, double ir)
 {
 	material m;
 	m.surface = s;
 	m.albedo = c;
-	m.fuzz = f;
+	m.fuzziness = f;
 	m.ir = ir;
 	return (m);
 }
@@ -54,33 +54,35 @@ int scatter(ray* r_in, hit_record* rec, color* attenuation, ray* scattered)
 
 	switch (rec->material.surface)
 	{
-	case lambertian:
-		direction = add(rec->normal, random_unit_vector());
+		case lambertian:
+			direction = vec3_add(rec->hit_normal, vec3_random_uv());
 
-		if (near_zero(direction))
-			direction = rec->normal;
-		break;
-	case dielectric:
-		refraction_ratio = rec->front_face ? (1.0 / rec->material.ir) : rec->material.ir;
+			if (vec3_near_zero(direction))
+				direction = rec->hit_normal;
+			break;
 
-		unit_direction = unit_vector(r_in->direction);
-		cos_theta = fminimum(dot(negate(unit_direction), rec->normal), 1.0);
-		sin_theta = square_root(1.0 - cos_theta * cos_theta);
+		case dielectric:
+			refraction_ratio = rec->front_face ? (1.0 / rec->material.ir) : rec->material.ir;
 
-		if (refraction_ratio * sin_theta > 1.0 || reflectance(cos_theta, refraction_ratio) > random_double())
-			direction = reflect(unit_vector(r_in->direction), rec->normal);
-		else
-			direction = refract(unit_direction, rec->normal, refraction_ratio);
-		break;
-	case metal:
-		direction = reflect(unit_vector(r_in->direction), rec->normal);
-		add_(&direction, multiply(random_in_unit_sphere(), rec->material.fuzz));
-		break;
+			unit_direction = vec3_uv(r_in->direction);
+			cos_theta = fminimum(vec3_dot(vec3_negate(unit_direction), rec->hit_normal), 1.0);
+			sin_theta = square_root(1.0 - cos_theta * cos_theta);
+
+			if (refraction_ratio * sin_theta > 1.0 || reflectance(cos_theta, refraction_ratio) > random_double())
+				direction = vec3_reflect(vec3_uv(r_in->direction), rec->hit_normal);
+			else
+				direction = vec3_refract(unit_direction, rec->hit_normal, refraction_ratio);
+			break;
+
+		case metal:
+			direction = vec3_reflect(vec3_uv(r_in->direction), rec->hit_normal);
+			vec3_add_update(&direction, vec3_multiply_scalar(vec3_random_in_unit_sphere(), rec->material.fuzziness));
+			break;
 	}
-	*scattered = ray_(rec->p, direction, r_in->time);
+	*scattered = ray_create(rec->p, direction, r_in->time);
 	*attenuation = rec->material.albedo;
 
-	return (rec->material.surface != metal || dot(scattered->direction, rec->normal) > 0);
+	return (rec->material.surface != metal || vec3_dot(scattered->direction, rec->hit_normal) > 0);
 }
 
 #endif

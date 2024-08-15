@@ -1,27 +1,27 @@
 #ifndef HITTABLE_H
 #define HITTABLE_H
 
-# include "rtweekend.h"
-# include "material.h"
+#include "common.h"
+#include "material.h"
 
 void set_face_normal(hit_record* rec, ray* r, vec3 outward_normal)
 {
-	rec->front_face = dot(r->direction, outward_normal) < 0;
-	rec->normal = rec->front_face ? outward_normal : negate(outward_normal);
+	rec->front_face = vec3_dot(r->direction, outward_normal) < 0;
+	rec->hit_normal = rec->front_face ? outward_normal : vec3_negate(outward_normal);
 }
 
-typedef enum	geometry
+typedef enum object_geometry
 {
-	_sphere,
-	_moving_sphere
+	sphere_geometry,
+	moving_sphere_geometry
 
-}				geometry;
+} geometry;
 
-typedef struct	hittable
+typedef struct hittable_object
 {
 	geometry geometry;
 	material material;
 	void* pointer;
-}				hittable;
+} hittable_object;
 
 #endif

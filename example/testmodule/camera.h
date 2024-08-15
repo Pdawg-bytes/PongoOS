@@ -1,9 +1,9 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "rtweekend.h"
+#include "common.h"
 
-typedef struct	camera
+typedef struct camera
 {
 	point3 origin;
 	point3 lower_left_corner;
@@ -13,10 +13,10 @@ typedef struct	camera
 	vec3 u;
 	vec3 v;
 	double lens_radius;
-	double time0, time1;
-}				camera;
+	double time_0, time_1;
+} camera;
 
-camera camera_(point3 lookfrom, point3 lookat, vec3 vup, double vfov, double aspect_ratio, double aperture, double focus_dist, double time0, double time1)
+camera camera_create(point3 look_from, point3 look_at, vec3 vec_upwards, double vfov, double aspect_ratio, double aperture, double focus_distance, double time_0, double time_1)
 {
 	camera c;
 
@@ -25,43 +25,41 @@ camera camera_(point3 lookfrom, point3 lookat, vec3 vup, double vfov, double asp
 	double viewport_height = 2.0 * h;
 	double viewport_width = aspect_ratio * viewport_height;
 
-	c.w = unit_vector(subtract(lookfrom, lookat));
-	//c.u = unit_vector(cross(vup, c.w));
-	c.u = vec3_(0.224860, 0.0, -0.974391);
-	//c.v = cross(c.w, c.u);
-	c.v = vec3_(-0.14453, 0.988950, -0.033335);
+	c.w = vec3_uv(vec3_subtract(look_from, look_at));
+	c.u = vec3_uv(vec3_cross(vec_upwards, c.w));
+	c.v = vec3_cross(c.w, c.u);
 
-	c.origin = lookfrom;
-	c.horizontal = multiply(c.u, viewport_width);
-	multiply_(&c.horizontal, focus_dist);
-	c.vertical = multiply(c.v, viewport_height);
-	multiply_(&c.vertical, focus_dist);
-	c.lower_left_corner = subtract(c.origin, divide(c.horizontal, 2));
-	subtract_(&c.lower_left_corner, divide(c.vertical, 2));
-	subtract_(&c.lower_left_corner, multiply(c.w, focus_dist));
+	c.origin = look_from;
+	c.horizontal = vec3_multiply_scalar(c.u, viewport_width);
+	vec3_multiply_scalar_update(&c.horizontal, focus_distance);
+	c.vertical = vec3_multiply_scalar(c.v, viewport_height);
+	vec3_multiply_scalar_update(&c.vertical, focus_distance);
+	c.lower_left_corner = vec3_subtract(c.origin, vec3_divide_scalar(c.horizontal, 2));
+	vec3_subtract_update(&c.lower_left_corner, vec3_divide_scalar(c.vertical, 2));
+	vec3_subtract_update(&c.lower_left_corner, vec3_multiply_scalar(c.w, focus_distance));
 
 	c.lens_radius = aperture / 2;
-	c.time0 = time0;
-	c.time1 = time1;
+	c.time_0 = time_0;
+	c.time_1 = time_1;
 	
 	return (c);
 }
 
-ray get_ray(camera* c, double s, double t)
+ray camera_get_ray(camera* cam, double s, double t)
 {
 	vec3 direction;
-	vec3 rd;
+	vec3 random;
 	vec3 offset;
 
-	rd = multiply(random_in_unit_disk(), c->lens_radius);
-	offset = multiply(c->u, rd.x);
-	add_(&offset, multiply(c->v, rd.y));
+	random = vec3_multiply_scalar(vec3_random_in_unit_disk(), cam->lens_radius);
+	offset = vec3_multiply_scalar(cam->u, random.x);
+	vec3_add_update(&offset, vec3_multiply_scalar(cam->v, random.y));
 
-	direction = add(c->lower_left_corner, multiply(c->horizontal, s));
-	add_(&direction, multiply(c->vertical, t));
-	subtract_(&direction, c->origin);
-	subtract_(&direction, offset);
-	return (ray_(add(c->origin, offset), direction, random_double_(c->time0, c->time1)));
+	direction = vec3_add(cam->lower_left_corner, vec3_multiply_scalar(cam->horizontal, s));
+	vec3_add_update(&direction, vec3_multiply_scalar(cam->vertical, t));
+	vec3_subtract_update(&direction, cam->origin);
+	vec3_subtract_update(&direction, offset);
+	return (ray_create(vec3_add(cam->origin, offset), direction, random_double_minmax(cam->time_0, cam->time_1)));
 }
 
 #endif
