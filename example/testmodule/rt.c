@@ -12,9 +12,10 @@
 #include "moving_sphere.h"
 #include "camera.h"
 
-#define make_lambertian(c) material_create(lambertian, c, FALSE, FALSE); 
-#define make_metal(c, f) material_create(metal, c, f, FALSE); 
-#define make_dielectric(i) material_create(dielectric, color_(1,1,1), FALSE, i); 
+#define lambertian_create(c) material_create(lambertian, c, FALSE, FALSE); 
+#define metal_create(c, f) material_create(metal, c, f, FALSE); 
+#define dielectric_create(i) material_create(dielectric, color_(1,1,1), FALSE, i);
+#define emitter_create(c) material_create(emitter, c, FALSE, FALSE);
 
 
 uint32_t color_raw(color color, int samples_per_pixel) {
@@ -40,7 +41,7 @@ hittable_list* random_scene()
 	hittable_list* world = NULL;
 	int a, b;
 
-	material ground_material = make_lambertian(color_(0.5, 0.5, 0.5));
+	material ground_material = lambertian_create(color_(0.5, 0.5, 0.5));
 	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(0, -1000, 0), 1000, ground_material)));
 
 	for (a = 0; a < 11; a++)
@@ -54,10 +55,16 @@ hittable_list* random_scene()
 			{
 				material sphere_material;
 
-				if (choose_mat < 0.8)
+				if (choose_mat < 0.65)
+				{
+					albedo = vec3_random_minmax(0.5, 1);
+					sphere_material = emitter_create(albedo);
+					hittable_list_push(&world, hittable_list_create(sphere_create(center, 0.2, sphere_material)));
+				}
+				else if (choose_mat < 0.8)
 				{
 					albedo = vec3_multiply(vec3_random(), vec3_random());
-					sphere_material = make_lambertian(albedo);
+					sphere_material = lambertian_create(albedo);
 					// Uncomment these lines to have a few "moving spheres" in your render.
 					// point3 center_ = add(center, vec3_(0, random_double_(0, 0.5), 0));
 					// push(&world, list_(moving_sphere_(center, _center, 0.0, 1.0, 0.2, sphere_material)));
@@ -69,12 +76,12 @@ hittable_list* random_scene()
 					{
 						albedo = vec3_random_minmax(0.5, 1);
 						double fuzz = random_double_minmax(0, 0.5);
-						sphere_material = make_metal(albedo, fuzz);
+						sphere_material = metal_create(albedo, fuzz);
 						hittable_list_push(&world, hittable_list_create(sphere_create(center, 0.2, sphere_material)));
 					}
 					else
 					{
-						sphere_material = make_dielectric(1.5);
+						sphere_material = dielectric_create(1.5);
 						hittable_list_push(&world, hittable_list_create(sphere_create(center, 0.2, sphere_material)));
 					}
 				}
@@ -82,13 +89,16 @@ hittable_list* random_scene()
 		}
 	}
 
-	material material1 = make_dielectric(1.5);
+	material material0 = emitter_create(vec3_create(0.4, 0.14, 0.72));
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(-8, 1, 0), 1, material0)));
+
+	material material1 = dielectric_create(1.5);
 	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(0, 1, 0), 1, material1)));
 
-	material material2 = make_lambertian(color_(0.4, 0.2, 0.1));
+	material material2 = lambertian_create(color_(0.4, 0.2, 0.1));
 	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(-4, 1, 0), 1, material2)));
 
-	material material3 = make_metal(color_(0.7, 0.6, 0.5), 0);
+	material material3 = metal_create(color_(0.7, 0.6, 0.5), 0);
 	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(4, 1, 0), 1, material3)));
 
 	return (world);
@@ -103,18 +113,25 @@ color ray_color(ray* r, hittable_list* world, int depth)
 
 	if (hittable_list_hit(world, r, 0.001, infinity_val, &rec))
 	{
-		ray scattered;
+		ray scattered_ray;
 		color attenuation;
 
-		if (scatter(r, &rec, &attenuation, &scattered)){
-			return (vec3_multiply(attenuation, ray_color(&scattered, world, depth - 1)));
+		if (scatter(r, &rec, &attenuation, &scattered_ray))
+		{
+			if (vec3_length(scattered_ray.direction) == 0) {
+				return attenuation;
+			}
+			return (vec3_multiply(attenuation, ray_color(&scattered_ray, world, depth - 1)));
 		}
-		return (color_(0, 0, 0));
+		return color_(0, 0, 0);
 	}
 
 	vec3 unit_direction = vec3_uv(r->direction);
 	double t = 0.5 * (unit_direction.y + 1.0);
 	return (vec3_add(vec3_multiply_scalar(color_(1.0, 1.0, 1.0), 1.0 - t), vec3_multiply_scalar(color_(0.5, 0.7, 1.0), t)));
+	
+	// Uncomment this line and comment the 3 above to remove the sky.
+	//return vec3_create(0, 0, 0);
 }
 
 

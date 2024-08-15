@@ -7,7 +7,8 @@ typedef enum surface_type
 {
 	metal,
 	lambertian,
-	dielectric
+	dielectric,
+	emitter
 } surface_type;
 
 typedef struct material
@@ -78,6 +79,9 @@ int scatter(ray* r_in, hit_record* rec, color* attenuation, ray* scattered)
 			direction = vec3_reflect(vec3_uv(r_in->direction), rec->hit_normal);
 			vec3_add_update(&direction, vec3_multiply_scalar(vec3_random_in_unit_sphere(), rec->material.fuzziness));
 			break;
+
+		case emitter:
+			direction = vec3_create(0, 0, 0);
 	}
 	*scattered = ray_create(rec->p, direction, r_in->time);
 	*attenuation = rec->material.albedo;

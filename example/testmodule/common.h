@@ -6,8 +6,8 @@
 #include "vec3.h"
 
 // Render settings
-#define MAX_SAMPLES_PER_PIXEL 	100
-#define MAX_RAY_DEPTH			10
+#define MAX_SAMPLES_PER_PIXEL 	5
+#define MAX_RAY_DEPTH			5
 
 // Image height calculated using aspect ratio
 #define ASPECT_RATIO 			1.0/1.0
