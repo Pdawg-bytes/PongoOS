@@ -195,5 +195,5 @@ void main()
     hittable_list_clear(&world);
     free(render_buffer); // Don't forget to free the allocated memory for the buffer cache!
 
-    puts("Render complete.");
+    puts("\n\nRender complete.");
 }
