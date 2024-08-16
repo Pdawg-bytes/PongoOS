@@ -28,13 +28,13 @@ typedef struct hit_record
 	int	front_face;
 } hit_record;
 
-material material_create(surface_type s, color c, double f, double ir)
+material material_create(surface_type surface, color surface_color, double fuzziness, double refractive_index)
 {
 	material m;
-	m.surface = s;
-	m.albedo = c;
-	m.fuzziness = f;
-	m.ir = ir;
+	m.surface = surface;
+	m.albedo = surface_color;
+	m.fuzziness = fuzziness;
+	m.ir = refractive_index;
 	return (m);
 }
 

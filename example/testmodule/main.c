@@ -46,9 +46,6 @@ void hello() {
 
 void fb_test() {
     memset(gFramebuffer, 5, gHeight * gRowPixels * sizeof(uint32_t));
-    while(1==1) {
-        // Infinite loop.
-    }
 }
 
 void rt_test() {

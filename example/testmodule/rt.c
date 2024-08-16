@@ -14,7 +14,7 @@
 
 #define lambertian_create(c) material_create(lambertian, c, FALSE, FALSE); 
 #define metal_create(c, f) material_create(metal, c, f, FALSE); 
-#define dielectric_create(i) material_create(dielectric, color_(1,1,1), FALSE, i);
+#define dielectric_create(c, i) material_create(dielectric, c, FALSE, i);
 #define emitter_create(c) material_create(emitter, c, FALSE, FALSE);
 
 
@@ -81,7 +81,7 @@ hittable_list* random_scene()
 					}
 					else
 					{
-						sphere_material = dielectric_create(1.5);
+						sphere_material = dielectric_create(color_(1, 1, 1), 1.5);
 						hittable_list_push(&world, hittable_list_create(sphere_create(center, 0.2, sphere_material)));
 					}
 				}
@@ -92,7 +92,7 @@ hittable_list* random_scene()
 	material material0 = emitter_create(vec3_create(0.4, 0.14, 0.72));
 	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(-8, 1, 0), 1, material0)));
 
-	material material1 = dielectric_create(1.5);
+	material material1 = dielectric_create(color_(1, 1, 1), 1.5);
 	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(0, 1, 0), 1, material1)));
 
 	material material2 = lambertian_create(color_(0.4, 0.2, 0.1));
@@ -100,6 +100,44 @@ hittable_list* random_scene()
 
 	material material3 = metal_create(color_(0.7, 0.6, 0.5), 0);
 	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(4, 1, 0), 1, material3)));
+
+	return (world);
+}
+
+hittable_list* cornell_box()
+{
+	hittable_list* world = NULL;
+
+	material light_material = emitter_create(color_(10, 10, 10));
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(0, 24.5, -38), 15, light_material)));
+
+	material ground_material = lambertian_create(color_(0.5, 0.5, 0.5));
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(0, -1010, -20), 1000, ground_material)));
+
+	material ceiling_material = lambertian_create(color_(0.5, 0.5, 0.5));
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(0, 1010, -20), 1000, ceiling_material)));
+
+	material left_wall_material = lambertian_create(color_(1, 0.2, 0.2));
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(-1010, 0, -20), 1000, left_wall_material)));
+
+	material right_wall_material = lambertian_create(color_(0.2, 1, 0.2));
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(1010, 0, -20), 1000, right_wall_material)));
+
+	material front_wall_material = lambertian_create(color_(0.5, 0.5, 0.5));
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(0, 0, -1055), 1000, front_wall_material)));
+
+	material back_wall_material = lambertian_create(color_(0.5, 0.5, 0.5));
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(0, 0, 1030), 1000, back_wall_material)));
+
+
+	material smooth_sphere_material = metal_create(color_(0.5, 0.5, 0.5), 0.1);
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(-4, -7, -40), 3, smooth_sphere_material)));
+
+	material glass_sphere_material = dielectric_create(color_(1, 1, 1), 1.5);
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(4, -7, -34), 3, glass_sphere_material)));
+
+	material lambertian_sphere_material = lambertian_create(color_(0.2, 0.2, 1));
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(4.5, 4.5, -38), 2, lambertian_sphere_material)));
 
 	return (world);
 }
@@ -131,9 +169,8 @@ color ray_color(ray* r, hittable_list* world, int depth)
 	return (vec3_add(vec3_multiply_scalar(color_(1.0, 1.0, 1.0), 1.0 - t), vec3_multiply_scalar(color_(0.5, 0.7, 1.0), t)));
 	
 	// Uncomment this line and comment the 3 above to remove the sky.
-	//return vec3_create(0, 0, 0);
+	// return vec3_create(0, 0, 0);
 }
-
 
 
 void main()
@@ -144,9 +181,13 @@ void main()
 	// Acts as a framebuffer cache for the output of our render.
     color* render_buffer = (color*)malloc(IMAGE_WIDTH * image_height * sizeof(color));
 
-    hittable_list* world = random_scene();
+    hittable_list* world = cornell_box();
 
-    point3 look_from = point3_(13, 2, 3);
+	// Camera position for Random Scene
+	// point3 look_from = point3_(13, 2, 3);
+
+	// Camera position for Cornell Box
+    point3 look_from = point3_(0, 0, 20);
     point3 look_at = point3_(0, 0, 0);
     vec3 vec_upwards = vec3_create(0, 1, 0);
 
