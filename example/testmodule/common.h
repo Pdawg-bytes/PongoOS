@@ -6,18 +6,18 @@
 #include "vec3.h"
 
 // Render settings
-#define MAX_SAMPLES_PER_PIXEL 	500
-#define MAX_RAY_DEPTH			50
+#define MAX_SAMPLES_PER_PIXEL 	10
+#define MAX_RAY_DEPTH			10
 
 // Camera settings
 #define DIST_TO_FOCUS 			10
-#define APERTURE 				0.1
+#define APERTURE 				0
 
 // The height offset in the Pongo framebuffer
 #define IMAGE_OFFSET			300
 
 // Image height calculated using aspect ratio
-#define ASPECT_RATIO 			1.0/1.0
+#define ASPECT_RATIO 			(1.0/1.0)
 #define IMAGE_WIDTH 			750
 // Image width should match the physical width of your iDevice's screen.
 // Table of resolutions (arm64 checkm8 devices):

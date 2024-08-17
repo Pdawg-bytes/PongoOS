@@ -44,9 +44,9 @@ hittable_list* random_scene()
 	material ground_material = lambertian_create(color_(0.5, 0.5, 0.5));
 	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(0, -1000, 0), 1000, ground_material)));
 
-	for (a = 0; a < 11; a++)
+	for (a = -11; a < 11; a++)
 	{
-		for (b = 0; b < 11; b++)
+		for (b = -11; b < 11; b++)
 		{
 			double choose_mat = random_double();
 			point3 center = point3_(a + 0.9 * random_double(), 0.2, b + 0.9 * random_double());
@@ -55,7 +55,7 @@ hittable_list* random_scene()
 			{
 				material sphere_material;
 
-				if (choose_mat < 0.65)
+				if (choose_mat > 0.65)
 				{
 					albedo = vec3_random_minmax(0.5, 1);
 					sphere_material = emitter_create(albedo);
@@ -66,8 +66,8 @@ hittable_list* random_scene()
 					albedo = vec3_multiply(vec3_random(), vec3_random());
 					sphere_material = lambertian_create(albedo);
 					// Uncomment these lines to have a few "moving spheres" in your render.
-					// point3 center_ = add(center, vec3_(0, random_double_(0, 0.5), 0));
-					// push(&world, list_(moving_sphere_(center, _center, 0.0, 1.0, 0.2, sphere_material)));
+					// point3 center_ = vec3_add(center, vec3_create(0, random_double_minmax(0, 0.5), 0));
+					// hittable_list_push(&world, hittable_list_create(moving_sphere_create(center, _center, 0.0, 1.0, 0.2, sphere_material)));
 					hittable_list_push(&world, hittable_list_create(sphere_create(center, 0.2, sphere_material)));
 				}
 				else
@@ -142,6 +142,25 @@ hittable_list* cornell_box()
 	return (world);
 }
 
+hittable_list* bubble_scene()
+{
+	hittable_list* world = NULL;
+
+	material ground_material = lambertian_create(color_(0.8, 0.8, 0.0));
+	material center_material = lambertian_create(color_(0.1, 0.2, 0.5));
+	material left_material = dielectric_create(color_(1.0, 1.0, 1.0), 1.5);
+	material bubble_material = dielectric_create(color_(1.0, 1.0, 1.0), 1.00 / 1.50);
+	material right_material = metal_create(color_(0.8, 0.6, 0.2), 1.0);
+
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(0.0, -100.5, -1.0), 100.0, ground_material)));
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(0.0, 0.0, -1.2), 0.5, center_material)));
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(-1.0, 0.0, -1.0), 0.5, left_material)));
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(-1.0, 0.0, -1.0), 0.4, bubble_material)));
+	hittable_list_push(&world, hittable_list_create(sphere_create(point3_(1.0, 0.0, -1.0), 0.5, right_material)));
+
+	return (world);
+}
+
 color ray_color(ray* r, hittable_list* world, int depth)
 {
 	hit_record rec;
@@ -175,20 +194,26 @@ color ray_color(ray* r, hittable_list* world, int depth)
 
 void main()
 {
-    const int image_height = (int)(IMAGE_WIDTH / ASPECT_RATIO);
+    const int image_height = (int)(IMAGE_WIDTH / (ASPECT_RATIO));
     int i, j, s;
 
 	// Acts as a framebuffer cache for the output of our render.
     color* render_buffer = (color*)malloc(IMAGE_WIDTH * image_height * sizeof(color));
 
-    hittable_list* world = cornell_box();
+    hittable_list* world = bubble_scene();
+
+	// Camera position for Bubble scene
+	point3 look_from = point3_(-2, 2, 1);
+	point3 look_at = point3_(0, 0, -1);
 
 	// Camera position for Random Scene
 	// point3 look_from = point3_(13, 2, 3);
+	// point3 look_at = point3_(0, 0, 0);
 
 	// Camera position for Cornell Box
-    point3 look_from = point3_(0, 0, 20);
-    point3 look_at = point3_(0, 0, 0);
+    // point3 look_from = point3_(0, 0, 20);
+    // point3 look_at = point3_(0, 0, 0);
+
     vec3 vec_upwards = vec3_create(0, 1, 0);
 
     camera cam = camera_create(look_from, look_at, vec_upwards, 20, ASPECT_RATIO, APERTURE, DIST_TO_FOCUS, 0, 1);
